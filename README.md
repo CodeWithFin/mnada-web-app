@@ -27,38 +27,32 @@ A social commerce web platform for Kenyan fashion community, combining fashion s
 - **Build Tool**: Vite
 - **Development**: Hot reload, ESLint
 
-## Getting Started
+## Deployment
 
-### Prerequisites
-- Node.js 16+ 
-- npm or yarn
+### GitHub Pages (Enabled)
+Your app will automatically deploy to GitHub Pages when you push to the main branch.
 
-### Installation
+**Setup Steps:**
+1. Go to your GitHub repository settings
+2. Navigate to "Pages" section  
+3. Set source to "Deploy from a branch"
+4. Choose "gh-pages" branch
+5. Your app will be available at: `https://codewithfin.github.io/mnada-web-app/`
 
-1. Clone the repository
-```bash
-git clone https://github.com/CodeWithFin/mnada-web-app.git
-cd mnada-web-app
-```
+### Other Deployment Options
 
-2. Install dependencies
-```bash
-npm install
-```
+**Vercel** (Recommended for React apps):
+- Connect your GitHub repo to Vercel
+- Automatic deployments on every push
+- Custom domain support
 
-3. Start the development server
-```bash
-npm run dev
-```
+**Netlify**:
+- Drag and drop the `dist/` folder after running `npm run build`
+- Or connect your GitHub repository
 
-4. Open your browser and visit `http://localhost:3000`
-
-### Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
+**Traditional Hosting**:
+- Run `npm run build`
+- Upload contents of `dist/` folder to your web server
 
 ## Project Structure
 
