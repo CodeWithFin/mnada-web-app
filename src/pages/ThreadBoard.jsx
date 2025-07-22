@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Filter, Search, Grid, List, Star, MapPin, Plus } from 'lucide-react'
+import { Search, Grid, List, Star, MapPin, Plus } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 const ThreadBoard = () => {
