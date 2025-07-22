@@ -2,10 +2,14 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, Grid, List, Star, MapPin, Plus } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import PostCreation from '../components/PostCreation'
+import SearchComponent from '../components/SearchComponent'
 
 const ThreadBoard = () => {
   const { isAuthenticated } = useAuth()
   const [viewMode, setViewMode] = useState('grid')
+  const [showCreatePost, setShowCreatePost] = useState(false)
+  const [searchResults, setSearchResults] = useState(null)
   const [filters, setFilters] = useState({
     category: 'all',
     priceRange: 'all',
@@ -195,55 +199,41 @@ const ThreadBoard = () => {
         </div>
         
         {isAuthenticated && (
-          <Link
-            to="/sell"
+          <button
+            onClick={() => setShowCreatePost(true)}
             className="flex items-center space-x-2 px-4 py-2 bg-brand-orange-light dark:bg-brand-orange-dark text-white rounded-apple font-medium hover:opacity-90 transition-opacity btn-hover mt-4 md:mt-0"
           >
             <Plus size={16} />
             <span>Sell Item</span>
-          </Link>
+          </button>
         )}
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-light-card dark:bg-dark-card rounded-apple-lg border border-light-border dark:border-dark-border p-6 mb-8">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Search */}
-          <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary" />
-            <input
-              type="text"
-              placeholder="Search for fashion items..."
-              className="w-full pl-10 pr-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-apple text-light-text-primary dark:text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-brand-orange-light dark:focus:ring-brand-orange-dark"
-            />
-          </div>
+      <div className="mb-8">
+        <SearchComponent 
+          onSearchResults={setSearchResults}
+          onFilterChange={(newFilters) => {
+            setFilters(prev => ({ ...prev, ...newFilters }))
+          }}
+        />
+      </div>
 
-          {/* Category Filter */}
-          <select
-            value={filters.category}
-            onChange={(e) => setFilters({...filters, category: e.target.value})}
-            className="px-4 py-2 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-apple text-light-text-primary dark:text-dark-text-primary focus:outline-none focus:ring-2 focus:ring-brand-orange-light dark:focus:ring-brand-orange-dark"
+      {/* View Toggle */}
+      <div className="flex items-center justify-end mb-6">
+        <div className="flex items-center space-x-2 bg-light-surface dark:bg-dark-surface rounded-apple p-1">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow-sm' : ''}`}
           >
-            {categories.map(category => (
-              <option key={category.id} value={category.id}>{category.name}</option>
-            ))}
-          </select>
-
-          {/* View Toggle */}
-          <div className="flex items-center space-x-2 bg-light-surface dark:bg-dark-surface rounded-apple p-1">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow-sm' : ''}`}
-            >
-              <Grid size={16} className="text-light-text-secondary dark:text-dark-text-secondary" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded ${viewMode === 'list' ? 'bg-white dark:bg-dark-card shadow-sm' : ''}`}
-            >
-              <List size={16} className="text-light-text-secondary dark:text-dark-text-secondary" />
-            </button>
-          </div>
+            <Grid size={16} className="text-light-text-secondary dark:text-dark-text-secondary" />
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`p-2 rounded ${viewMode === 'list' ? 'bg-white dark:bg-dark-card shadow-sm' : ''}`}
+          >
+            <List size={16} className="text-light-text-secondary dark:text-dark-text-secondary" />
+          </button>
         </div>
       </div>
 
@@ -292,6 +282,19 @@ const ThreadBoard = () => {
           Load More Items
         </button>
       </div>
+
+      {/* Post Creation Modal */}
+      <PostCreation
+        isOpen={showCreatePost}
+        onClose={() => setShowCreatePost(false)}
+        onSubmit={(postData) => {
+          console.log('New ThreadBoard listing:', postData)
+          // In a real app, this would call the API
+          setShowCreatePost(false)
+          // Refresh products or add to local state
+        }}
+        type="threadboard"
+      />
     </div>
   )
 }

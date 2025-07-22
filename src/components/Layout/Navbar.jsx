@@ -14,6 +14,8 @@ const Navbar = () => {
     { name: 'Home', href: '/' },
     { name: 'SnapFit', href: '/snapfit' },
     { name: 'ThreadBoard', href: '/threadboard' },
+    { name: 'Museum', href: '/museum' },
+    { name: 'Messages', href: '/messages' },
   ]
 
   const isActiveRoute = (path) => {

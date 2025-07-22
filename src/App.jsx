@@ -9,6 +9,8 @@ import Profile from './pages/Profile'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ProductDetail from './pages/ProductDetail'
+import MuseumMnada from './pages/MuseumMnada'
+import Messages from './pages/Messages'
 
 function App() {
   return (
@@ -24,6 +26,8 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/museum" element={<MuseumMnada />} />
+              <Route path="/messages" element={<Messages />} />
             </Routes>
           </Layout>
         </Router>

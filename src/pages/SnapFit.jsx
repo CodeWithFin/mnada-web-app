@@ -2,10 +2,14 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Camera, Heart, MessageCircle, Share, Filter, Plus } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import PostCreation from '../components/PostCreation'
+import SearchComponent from '../components/SearchComponent'
 
 const SnapFit = () => {
   const { isAuthenticated } = useAuth()
   const [filter, setFilter] = useState('all')
+  const [showCreatePost, setShowCreatePost] = useState(false)
+  const [searchResults, setSearchResults] = useState(null)
 
   // Mock data for posts
   const posts = [
@@ -156,13 +160,13 @@ const SnapFit = () => {
         </div>
         
         {isAuthenticated && (
-          <Link
-            to="/create-post"
+          <button
+            onClick={() => setShowCreatePost(true)}
             className="flex items-center space-x-2 px-4 py-2 bg-brand-orange-light dark:bg-brand-orange-dark text-white rounded-apple font-medium hover:opacity-90 transition-opacity btn-hover"
           >
             <Plus size={16} />
             <span>Post</span>
-          </Link>
+          </button>
         )}
       </div>
 
@@ -182,6 +186,14 @@ const SnapFit = () => {
             {category.name}
           </button>
         ))}
+      </div>
+
+      {/* Search Component */}
+      <div className="mb-8">
+        <SearchComponent 
+          onSearchResults={setSearchResults}
+          onFilterChange={(filters) => console.log('Filters:', filters)}
+        />
       </div>
 
       {/* Posts Grid */}
@@ -223,6 +235,17 @@ const SnapFit = () => {
           Load More Posts
         </button>
       </div>
+
+      {/* Post Creation Modal */}
+      <PostCreation
+        isOpen={showCreatePost}
+        onClose={() => setShowCreatePost(false)}
+        onSubmit={(postData) => {
+          console.log('New SnapFit post:', postData)
+          setShowCreatePost(false)
+        }}
+        type="snapfit"
+      />
     </div>
   )
 }
