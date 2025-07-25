@@ -95,6 +95,12 @@ const Navbar = () => {
                   >
                     Profile
                   </Link>
+                  <Link
+                    to="/saved"
+                    className="block px-4 py-2 text-sm text-light-text-primary dark:text-dark-text-primary hover:bg-light-surface dark:hover:bg-dark-surface"
+                  >
+                    Saved Posts
+                  </Link>
                   <button
                     onClick={logout}
                     className="block w-full text-left px-4 py-2 text-sm text-light-text-primary dark:text-dark-text-primary hover:bg-light-surface dark:hover:bg-dark-surface"

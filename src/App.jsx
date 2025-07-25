@@ -11,6 +11,8 @@ import Register from './pages/Register'
 import ProductDetail from './pages/ProductDetail'
 import MuseumMnada from './pages/MuseumMnada'
 import Messages from './pages/Messages'
+import SavedPosts from './pages/SavedPosts'
+import MessagingDemo from './pages/MessagingDemo'
 
 function App() {
   return (
@@ -28,6 +30,8 @@ function App() {
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/museum" element={<MuseumMnada />} />
               <Route path="/messages" element={<Messages />} />
+              <Route path="/messaging-demo" element={<MessagingDemo />} />
+              <Route path="/saved" element={<SavedPosts />} />
             </Routes>
           </Layout>
         </Router>

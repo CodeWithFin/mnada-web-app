@@ -530,6 +530,305 @@ export const messagingAPI = {
   }
 }
 
+// Social interactions API
+const socialAPI = {
+  // Follow/Unfollow system
+  async followUser(userId) {
+    await delay(API_DELAY)
+    
+    if (shouldSimulateError()) {
+      throw new Error('Failed to follow user')
+    }
+
+    // Update mock data
+    const user = mockUsers.find(u => u.id === userId)
+    if (user) {
+      user.followers += 1
+    }
+
+    return {
+      success: true,
+      isFollowing: true,
+      message: 'Successfully followed user'
+    }
+  },
+
+  async unfollowUser(userId) {
+    await delay(API_DELAY)
+    
+    if (shouldSimulateError()) {
+      throw new Error('Failed to unfollow user')
+    }
+
+    // Update mock data
+    const user = mockUsers.find(u => u.id === userId)
+    if (user) {
+      user.followers -= 1
+    }
+
+    return {
+      success: true,
+      isFollowing: false,
+      message: 'Successfully unfollowed user'
+    }
+  },
+
+  async getFollowStatus(userId) {
+    await delay(200)
+    
+    // Mock follow status - random for demo
+    const isFollowing = Math.random() > 0.5
+    
+    return {
+      isFollowing,
+      userId
+    }
+  },
+
+  async getFollowers(userId, page = 1, limit = 20) {
+    await delay(API_DELAY)
+    
+    // Generate mock followers
+    const followers = Array.from({ length: limit }, (_, i) => ({
+      id: 1000 + (page - 1) * limit + i,
+      username: `follower_${1000 + (page - 1) * limit + i}`,
+      name: `Follower ${1000 + (page - 1) * limit + i}`,
+      avatar: `/api/placeholder/40/40`,
+      bio: 'Fashion enthusiast',
+      verified: Math.random() > 0.8,
+      isFollowing: Math.random() > 0.5
+    }))
+
+    return {
+      followers,
+      total: 2340,
+      page,
+      hasMore: page < 5
+    }
+  },
+
+  async getFollowing(userId, page = 1, limit = 20) {
+    await delay(API_DELAY)
+    
+    // Generate mock following
+    const following = Array.from({ length: limit }, (_, i) => ({
+      id: 2000 + (page - 1) * limit + i,
+      username: `following_${2000 + (page - 1) * limit + i}`,
+      name: `Following ${2000 + (page - 1) * limit + i}`,
+      avatar: `/api/placeholder/40/40`,
+      bio: 'Style inspiration',
+      verified: Math.random() > 0.7,
+      isFollowing: true
+    }))
+
+    return {
+      following,
+      total: 890,
+      page,
+      hasMore: page < 3
+    }
+  },
+
+  // Like/Unlike posts
+  async likePost(postId) {
+    await delay(300)
+    
+    const post = mockPosts.find(p => p.id === postId)
+    if (post) {
+      post.likes += 1
+      post.isLiked = true
+    }
+
+    return {
+      success: true,
+      isLiked: true,
+      likesCount: post?.likes || 0
+    }
+  },
+
+  async unlikePost(postId) {
+    await delay(300)
+    
+    const post = mockPosts.find(p => p.id === postId)
+    if (post) {
+      post.likes -= 1
+      post.isLiked = false
+    }
+
+    return {
+      success: true,
+      isLiked: false,
+      likesCount: post?.likes || 0
+    }
+  },
+
+  // Save/Unsave posts
+  async savePost(postId) {
+    await delay(400)
+    
+    // Get saved posts from localStorage
+    const savedPosts = JSON.parse(localStorage.getItem('savedPosts') || '[]')
+    if (!savedPosts.includes(postId)) {
+      savedPosts.push(postId)
+      localStorage.setItem('savedPosts', JSON.stringify(savedPosts))
+    }
+
+    return {
+      success: true,
+      isSaved: true,
+      message: 'Post saved to collection'
+    }
+  },
+
+  async unsavePost(postId) {
+    await delay(400)
+    
+    // Get saved posts from localStorage
+    const savedPosts = JSON.parse(localStorage.getItem('savedPosts') || '[]')
+    const updatedSaved = savedPosts.filter(id => id !== postId)
+    localStorage.setItem('savedPosts', JSON.stringify(updatedSaved))
+
+    return {
+      success: true,
+      isSaved: false,
+      message: 'Post removed from collection'
+    }
+  },
+
+  async getSavedPosts(page = 1, limit = 10) {
+    await delay(API_DELAY)
+    
+    const savedPostIds = JSON.parse(localStorage.getItem('savedPosts') || '[]')
+    const savedPosts = mockPosts.filter(post => savedPostIds.includes(post.id))
+    
+    const startIndex = (page - 1) * limit
+    const paginatedPosts = savedPosts.slice(startIndex, startIndex + limit)
+
+    return {
+      posts: paginatedPosts,
+      total: savedPosts.length,
+      page,
+      hasMore: startIndex + limit < savedPosts.length
+    }
+  },
+
+  // Comments system
+  async getComments(postId, page = 1, limit = 10) {
+    await delay(500)
+    
+    // Generate mock comments
+    const comments = Array.from({ length: Math.min(limit, 8) }, (_, i) => ({
+      id: 1000 + i,
+      postId,
+      userId: 100 + i,
+      username: `user_${100 + i}`,
+      avatar: `/api/placeholder/32/32`,
+      content: [
+        'Love this outfit! 😍',
+        'Where did you get that jacket?',
+        'Perfect styling as always! 🔥',
+        'This is giving me major fashion goals',
+        'Can you do a styling tutorial?',
+        'Absolutely stunning! 💯',
+        'Need this in my wardrobe ASAP',
+        'Your style is always on point!'
+      ][i],
+      likes: Math.floor(Math.random() * 20),
+      isLiked: Math.random() > 0.7,
+      timestamp: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000),
+      mentions: []
+    }))
+
+    return {
+      comments,
+      total: 45,
+      page,
+      hasMore: page < 5
+    }
+  },
+
+  async addComment(postId, content, mentions = []) {
+    await delay(600)
+    
+    if (shouldSimulateError()) {
+      throw new Error('Failed to add comment')
+    }
+
+    const comment = {
+      id: Date.now(),
+      postId,
+      userId: 1, // Current user
+      username: 'current_user',
+      avatar: `/api/placeholder/32/32`,
+      content,
+      likes: 0,
+      isLiked: false,
+      timestamp: new Date(),
+      mentions
+    }
+
+    // Update post comment count
+    const post = mockPosts.find(p => p.id === postId)
+    if (post) {
+      post.comments += 1
+    }
+
+    return comment
+  },
+
+  // User mentions and search
+  async searchUsers(query) {
+    await delay(300)
+    
+    if (!query || query.length < 2) {
+      return { users: [] }
+    }
+
+    // Filter mock users by query
+    const filteredUsers = mockUsers.filter(user => 
+      user.username.toLowerCase().includes(query.toLowerCase()) ||
+      user.name.toLowerCase().includes(query.toLowerCase())
+    )
+
+    return {
+      users: filteredUsers.map(user => ({
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        avatar: user.avatar,
+        verified: user.verified
+      }))
+    }
+  },
+
+  // Share functionality
+  async sharePost(postId, platform = 'copy') {
+    await delay(200)
+    
+    const post = mockPosts.find(p => p.id === postId)
+    if (!post) {
+      throw new Error('Post not found')
+    }
+
+    const shareUrl = `${window.location.origin}/post/${postId}`
+    
+    if (platform === 'copy') {
+      await navigator.clipboard.writeText(shareUrl)
+      return {
+        success: true,
+        message: 'Link copied to clipboard'
+      }
+    }
+
+    // For other platforms, return the share URL
+    return {
+      success: true,
+      shareUrl,
+      message: 'Share link generated'
+    }
+  }
+}
+
 // Export all APIs
 const API = {
   auth: authAPI,
@@ -538,7 +837,8 @@ const API = {
   user: userAPI,
   upload: uploadAPI,
   museum: museumAPI,
-  messaging: messagingAPI
+  messaging: messagingAPI,
+  social: socialAPI
 }
 
 export default API

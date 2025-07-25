@@ -1,9 +1,14 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Camera, Heart, MessageCircle, Share, Filter, Plus } from 'lucide-react'
+import { Camera, Filter, Plus } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import PostCreation from '../components/PostCreation'
 import SearchComponent from '../components/SearchComponent'
+import LikeButton from '../components/LikeButton'
+import CommentsSection from '../components/CommentsSection'
+import ShareButton from '../components/ShareButton'
+import SaveButton from '../components/SaveButton'
+import FollowButton from '../components/FollowButton'
 
 const SnapFit = () => {
   const { isAuthenticated } = useAuth()
@@ -78,32 +83,47 @@ const SnapFit = () => {
       {/* User Header */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-brand-orange-light to-brand-blue-light rounded-full flex items-center justify-center">
-            <span className="text-white font-medium text-sm">
-              {post.user.username.charAt(0).toUpperCase()}
-            </span>
-          </div>
-          <div>
-            <div className="flex items-center space-x-1">
-              <span className="font-medium text-light-text-primary dark:text-dark-text-primary">
-                {post.user.username}
+          <Link to={`/profile/${post.user.username}`} className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-brand-orange-light to-brand-blue-light rounded-full flex items-center justify-center">
+              <span className="text-white font-medium text-sm">
+                {post.user.username.charAt(0).toUpperCase()}
               </span>
-              {post.user.verified && (
-                <div className="w-4 h-4 bg-brand-blue-light dark:bg-brand-blue-dark rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs">✓</span>
-                </div>
-              )}
             </div>
-            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-              {post.location} • {post.timeAgo}
-            </p>
-          </div>
+            <div>
+              <div className="flex items-center space-x-1">
+                <span className="font-medium text-light-text-primary dark:text-dark-text-primary hover:underline">
+                  {post.user.username}
+                </span>
+                {post.user.verified && (
+                  <div className="w-4 h-4 bg-brand-blue-light dark:bg-brand-blue-dark rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">✓</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                {post.location} • {post.timeAgo}
+              </p>
+            </div>
+          </Link>
         </div>
-        <button className="p-1 text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary">
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-          </svg>
-        </button>
+        
+        <div className="flex items-center space-x-2">
+          {/* Follow Button */}
+          <FollowButton
+            userId={post.user.id}
+            username={post.user.username}
+            variant="secondary"
+            size="small"
+            showIcon={false}
+          />
+          
+          {/* Menu Button */}
+          <button className="p-1 text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Image */}
@@ -113,35 +133,56 @@ const SnapFit = () => {
           alt="Fashion post"
           className="w-full h-full object-cover"
         />
+        
+        {/* Save button overlay */}
+        <div className="absolute top-3 right-3">
+          <div className="bg-black/50 backdrop-blur-sm rounded-full p-2">
+            <SaveButton
+              postId={post.id}
+              size={16}
+              className="text-white hover:text-brand-orange-light"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Actions */}
       <div className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-4">
-            <button 
-              className={`flex items-center space-x-2 transition-colors ${
-                post.isLiked ? 'text-red-500' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-red-500'
-              }`}
-            >
-              <Heart size={20} className={post.isLiked ? 'fill-current' : ''} />
-              <span className="text-sm font-medium">{post.likes}</span>
-            </button>
-            <button className="flex items-center space-x-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary transition-colors">
-              <MessageCircle size={20} />
-              <span className="text-sm font-medium">{post.comments}</span>
-            </button>
-            <button className="text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary transition-colors">
-              <Share size={20} />
-            </button>
+            <LikeButton
+              postId={post.id}
+              initialLikes={post.likes}
+              initialIsLiked={post.isLiked}
+            />
+            <CommentsSection
+              postId={post.id}
+              initialCommentCount={post.comments}
+            />
+            <ShareButton
+              postId={post.id}
+              postTitle={`Check out this outfit from ${post.user.username}`}
+            />
           </div>
         </div>
 
         {/* Caption */}
         <div className="text-sm text-light-text-primary dark:text-dark-text-primary">
-          <span className="font-medium">{post.user.username}</span>{' '}
+          <Link 
+            to={`/profile/${post.user.username}`}
+            className="font-medium hover:underline"
+          >
+            {post.user.username}
+          </Link>{' '}
           {post.caption}
         </div>
+        
+        {/* View all comments link if there are many comments */}
+        {post.comments > 3 && (
+          <button className="text-sm text-light-text-secondary dark:text-dark-text-secondary hover:underline mt-1">
+            View all {post.comments} comments
+          </button>
+        )}
       </div>
     </div>
   )

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Camera, MapPin, Calendar, Edit, Settings, Grid, User, Heart } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import FollowButton from '../components/FollowButton'
 
 const Profile = () => {
   const { username } = useParams()
@@ -126,9 +127,15 @@ const Profile = () => {
                 </div>
               ) : (
                 <div className="flex space-x-2">
-                  <button className="px-6 py-2 bg-brand-orange-light dark:bg-brand-orange-dark text-white rounded-apple font-medium hover:opacity-90 transition-opacity btn-hover">
-                    Follow
-                  </button>
+                  <FollowButton
+                    userId={profileUser.id}
+                    username={profileUser.username}
+                    variant="primary"
+                    size="default"
+                    onFollowChange={(isFollowing, userId) => {
+                      console.log(`${isFollowing ? 'Followed' : 'Unfollowed'} user ${userId}`)
+                    }}
+                  />
                   <button className="px-6 py-2 border border-light-border dark:border-dark-border text-light-text-primary dark:text-dark-text-primary rounded-apple font-medium hover:bg-light-surface dark:hover:bg-dark-surface transition-colors">
                     Message
                   </button>
