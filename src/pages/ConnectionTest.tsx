@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 const ConnectionTest: React.FC = () => {
@@ -6,11 +6,7 @@ const ConnectionTest: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [details, setDetails] = useState<any>(null);
 
-  useEffect(() => {
-    testConnection();
-  }, []);
-
-  const testConnection = async () => {
+  const testConnection = useCallback(async () => {
     try {
       setStatus('testing');
       setError(null);
@@ -20,7 +16,7 @@ const ConnectionTest: React.FC = () => {
       console.log('Anon Key:', process.env.REACT_APP_SUPABASE_ANON_KEY ? 'Set' : 'Not Set');
 
       // Test 1: Basic connection
-      const { data, error: connectionError } = await supabase
+      const { error: connectionError } = await supabase
         .from('categories')
         .select('count')
         .limit(1);
@@ -32,7 +28,7 @@ const ConnectionTest: React.FC = () => {
       console.log('✅ Basic connection successful');
 
       // Test 2: Check if database schema exists
-      const { data: tables, error: tablesError } = await supabase
+      const { error: tablesError } = await supabase
         .rpc('count', { table_name: 'categories' })
         .single();
 
@@ -70,7 +66,11 @@ const ConnectionTest: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Unknown error');
       setStatus('failed');
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    testConnection();
+  }, [testConnection]);
 
   const testSignup = async () => {
     try {

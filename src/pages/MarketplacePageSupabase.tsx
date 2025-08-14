@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { productService, categoryService, cartService, type Product, type Category } from '../services/database';
 import { 
-  StarIcon, 
   HeartIcon, 
   ShoppingBagIcon, 
   FunnelIcon,
@@ -14,7 +12,6 @@ import {
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 
 const MarketplacePage: React.FC = () => {
-  const { isDark } = useTheme();
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -27,29 +24,16 @@ const MarketplacePage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  useEffect(() => {
-    loadCategories();
-  }, []);
-
-  useEffect(() => {
-    const id = setTimeout(() => setDebouncedSearch(searchTerm), 300);
-    return () => clearTimeout(id);
-  }, [searchTerm]);
-
-  useEffect(() => {
-    loadProducts();
-  }, [selectedCategory, debouncedSearch, sortBy]);
-
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     try {
       const data = await categoryService.getAll();
       setCategories(data);
     } catch (err) {
       console.error('Failed to load categories:', err);
     }
-  };
+  }, []);
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -85,7 +69,20 @@ const MarketplacePage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory, debouncedSearch, sortBy]);
+
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(id);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

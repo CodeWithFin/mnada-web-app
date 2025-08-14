@@ -1,4 +1,4 @@
-import { supabase, TABLES, BUCKETS } from '../lib/supabase';
+import { supabase, TABLES } from '../lib/supabase';
 
 // Types
 export interface Product {
