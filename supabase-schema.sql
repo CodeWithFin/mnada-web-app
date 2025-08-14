@@ -5,6 +5,7 @@
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- Drop existing tables if they exist (for clean setup)
 DROP TABLE IF EXISTS cart_items CASCADE;
@@ -447,6 +448,93 @@ INSERT INTO categories (name, description) VALUES
   ('Children''s Wear', 'African fashion for kids and babies'),
   ('Textiles', 'African fabrics and textiles'),
   ('Footwear', 'Traditional and modern African-inspired shoes');
+
+-- ===========================================
+-- SEED SAMPLE DATA (Demo users, products, and posts)
+-- Run this section once in the Supabase SQL editor after schema setup
+-- Safe to re-run: guarded by email/name existence checks
+-- ===========================================
+
+-- Create two demo auth users (this will auto-create user profiles via trigger)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'seller1@demo.mnada') THEN
+    INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)
+    VALUES (
+      gen_random_uuid(),
+      'seller1@demo.mnada',
+      crypt('Password123!', gen_salt('bf')),
+      NOW(),
+      jsonb_build_object('display_name','Amina Styles','avatar_url','https://i.pravatar.cc/150?img=5')
+    );
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'seller2@demo.mnada') THEN
+    INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)
+    VALUES (
+      gen_random_uuid(),
+      'seller2@demo.mnada',
+      crypt('Password123!', gen_salt('bf')),
+      NOW(),
+      jsonb_build_object('display_name','Kwame Tailor','avatar_url','https://i.pravatar.cc/150?img=12')
+    );
+  END IF;
+END$$;
+
+-- Resolve demo user ids
+WITH u1 AS (
+  SELECT id AS user_id FROM auth.users WHERE email = 'seller1@demo.mnada'
+), u2 AS (
+  SELECT id AS user_id FROM auth.users WHERE email = 'seller2@demo.mnada'
+), c AS (
+  SELECT name, id FROM categories
+)
+-- Insert demo products (idempotent on name + seller)
+INSERT INTO products (seller_id, category_id, name, description, price, image_url, stock_quantity, is_available)
+SELECT u.user_id,
+       (SELECT id FROM c WHERE name = p.category_name),
+       p.name,
+       p.description,
+       p.price,
+       p.image_url,
+       p.stock_quantity,
+       true
+FROM (
+  VALUES
+    ((SELECT user_id FROM u1), 'Traditional Wear', 'Kitenge Maxi Dress', 'Vibrant Ankara maxi dress with bold prints', 79.99, 'https://via.placeholder.com/640x480?text=Kitenge+Maxi+Dress', 12),
+    ((SELECT user_id FROM u1), 'Modern African', 'Dashiki Hoodie', 'Comfortable hoodie with African-inspired patterns', 59.99, 'https://via.placeholder.com/640x480?text=Dashiki+Hoodie', 20),
+    ((SELECT user_id FROM u1), 'Accessories', 'Beaded Maasai Necklace', 'Handmade multicolor beaded necklace', 24.50, 'https://via.placeholder.com/640x480?text=Maasai+Necklace', 50),
+    ((SELECT user_id FROM u2), 'Men''s Fashion', 'Agbada Set', 'Elegant agbada with intricate embroidery', 149.00, 'https://via.placeholder.com/640x480?text=Agbada+Set', 5),
+    ((SELECT user_id FROM u2), 'Women''s Fashion', 'Headwrap Collection', 'Set of 3 African print headwraps', 29.99, 'https://via.placeholder.com/640x480?text=Headwrap+Collection', 30),
+    ((SELECT user_id FROM u2), 'Footwear', 'Leather Sandals', 'Handcrafted leather sandals with beadwork', 39.95, 'https://via.placeholder.com/640x480?text=Leather+Sandals', 18),
+    ((SELECT user_id FROM u1), 'Textiles', 'Wax Print Fabric (5 yards)', 'High-quality wax print fabric', 34.00, 'https://via.placeholder.com/640x480?text=Wax+Print+Fabric', 40),
+    ((SELECT user_id FROM u2), 'Children''s Wear', 'Baby Ankara Romper', 'Cute Ankara romper for babies', 22.00, 'https://via.placeholder.com/640x480?text=Baby+Ankara+Romper', 25)
+) AS p (seller_id, category_name, name, description, price, image_url, stock_quantity)
+JOIN (SELECT user_id FROM u1 UNION ALL SELECT user_id FROM u2) u ON u.user_id = p.seller_id
+WHERE NOT EXISTS (
+  SELECT 1 FROM products pr
+  WHERE pr.name = p.name AND pr.seller_id = p.seller_id
+);
+
+-- Insert demo SnapFit posts
+WITH u1 AS (
+  SELECT id AS user_id FROM auth.users WHERE email = 'seller1@demo.mnada'
+), u2 AS (
+  SELECT id AS user_id FROM auth.users WHERE email = 'seller2@demo.mnada'
+)
+INSERT INTO posts (user_id, caption, image_url, created_at)
+SELECT p.user_id, p.caption, p.image_url, NOW() - (p.offset_days || ' days')::interval
+FROM (
+  VALUES
+    ((SELECT user_id FROM u1), 'Today''s Ankara vibes ✨', 'https://via.placeholder.com/1080x1080?text=SnapFit+Look+1', 1),
+    ((SELECT user_id FROM u1), 'Weekend dashiki fit 🔥', 'https://via.placeholder.com/1080x1080?text=SnapFit+Look+2', 2),
+    ((SELECT user_id FROM u2), 'Classic agbada drip 💫', 'https://via.placeholder.com/1080x1080?text=SnapFit+Look+3', 3),
+    ((SELECT user_id FROM u2), 'Beaded accessories for the win 💎', 'https://via.placeholder.com/1080x1080?text=SnapFit+Look+4', 4)
+) AS p (user_id, caption, image_url, offset_days)
+WHERE NOT EXISTS (
+  SELECT 1 FROM posts po
+  WHERE po.user_id = p.user_id AND po.caption = p.caption
+);
 
 -- ===========================================
 -- DATABASE COMMENTS
