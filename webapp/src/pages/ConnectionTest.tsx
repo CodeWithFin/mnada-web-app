@@ -42,7 +42,7 @@ const ConnectionTest: React.FC = () => {
 
       // Test 3: Test auth signup (this will tell us the real issue)
       const testEmail = `test-${Date.now()}@example.com`;
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { error: authError } = await supabase.auth.signUp({
         email: testEmail,
         password: 'test123456',
       });
@@ -75,7 +75,7 @@ const ConnectionTest: React.FC = () => {
   const testSignup = async () => {
     try {
       const testEmail = `manual-test-${Date.now()}@example.com`;
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: testEmail,
         password: 'test123456',
       });
@@ -84,7 +84,7 @@ const ConnectionTest: React.FC = () => {
         alert(`Signup Error: ${error.message}`);
       } else {
         alert('Signup successful! Check the result in console.');
-        console.log('Signup result:', data);
+        console.log('Signup successful');
       }
     } catch (err) {
       alert(`Signup Exception: ${err}`);

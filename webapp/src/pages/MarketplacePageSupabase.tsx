@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { productService, categoryService, cartService, type Product, type Category } from '../services/database';
@@ -35,8 +35,7 @@ const MarketplacePage: React.FC = () => {
 
   useEffect(() => {
     loadProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategory, debouncedSearch, sortBy]);
+  }, [selectedCategory, debouncedSearch, sortBy, loadProducts]);
 
   const loadCategories = async () => {
     try {
@@ -47,7 +46,7 @@ const MarketplacePage: React.FC = () => {
     }
   };
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -83,7 +82,7 @@ const MarketplacePage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory, debouncedSearch, sortBy]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

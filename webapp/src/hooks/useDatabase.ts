@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { productService, postService, userService, categoryService } from '../services/database';
 import type { Product, Post, User, Category } from '../services/database';
@@ -10,7 +10,7 @@ export const useProducts = (page = 1, limit = 20, category?: string, search?: st
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -22,12 +22,11 @@ export const useProducts = (page = 1, limit = 20, category?: string, search?: st
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, category, search]);
 
   useEffect(() => {
     fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, category, search, fetchProducts]);
+  }, [fetchProducts]);
 
   return { products, loading, error, total, refetch: fetchProducts };
 };
@@ -39,7 +38,7 @@ export const usePosts = (page = 1, limit = 20) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -50,12 +49,11 @@ export const usePosts = (page = 1, limit = 20) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, user?.id]);
 
   useEffect(() => {
     fetchPosts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, user?.id, fetchPosts]);
+  }, [fetchPosts]);
 
   const likePost = async (postId: string) => {
     if (!user) return;
@@ -103,7 +101,7 @@ export const useCategories = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -114,11 +112,10 @@ export const useCategories = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchCategories();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchCategories]);
 
   return { categories, loading, error, refetch: fetchCategories };
@@ -133,7 +130,7 @@ export const useUserProfile = (userId?: string) => {
 
   const targetUserId = userId || currentUser?.id;
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     if (!targetUserId) {
       setLoading(false);
       return;
@@ -149,12 +146,11 @@ export const useUserProfile = (userId?: string) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [targetUserId]);
 
   useEffect(() => {
     fetchUser();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetUserId, fetchUser]);
+  }, [fetchUser]);
 
   const updateProfile = async (updates: Partial<User>) => {
     if (!targetUserId) return;
