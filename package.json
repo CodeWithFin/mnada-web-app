@@ -1,0 +1,44 @@
+{
+  "name": "mnada-web-app",
+  "version": "1.0.0",
+  "description": "MNADA - Kenyan Fashion Social-Commerce PWA (SnapFit + ThreadBoard + Museum + Foundation)",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "./scripts/dev.sh",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "test:e2e": "npm run test:e2e --workspace=frontend",
+    "test:coverage": "npm run test:coverage --workspaces",
+    "lint": "npm run lint --workspaces",
+    "db:migrate": "./scripts/migrate.sh",
+    "db:seed": "./scripts/seed.sh",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "start": "npm run start --workspaces",
+    "check": "./scripts/check.sh"
+  },
+  "keywords": [
+    "fashion",
+    "social-commerce",
+    "pwa",
+    "nextjs",
+    "nestjs",
+    "supabase",
+    "kenyan-fashion"
+  ],
+  "author": "CodeWithFin",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "concurrently": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

@@ -1,0 +1,465 @@
+name: MNADA CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  NODE_VERSION: '18'
+  POSTGRES_VERSION: '15'
+
+jobs:
+  # ===================================
+  # LINT & FORMAT CHECK
+  # ===================================
+  lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run linting (Frontend)
+      if: always()
+      run: |
+        if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
+          cd frontend && npm run lint
+        fi
+        
+    - name: Run linting (Backend)
+      if: always()
+      run: |
+        if [ -d "backend" ] && [ -f "backend/package.json" ]; then
+          cd backend && npm run lint
+        fi
+
+  # ===================================
+  # BACKEND TESTS
+  # ===================================
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_USER: test_user
+          POSTGRES_DB: mnada_test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Setup test database
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/mnada_test_db
+      run: |
+        psql $DATABASE_URL -f db/mnada_schema_supabase.sql
+        
+    - name: Run backend unit tests
+      if: always()
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/mnada_test_db
+        REDIS_URL: redis://localhost:6379
+        NODE_ENV: test
+        JWT_SECRET: test-jwt-secret-key-for-ci-testing
+      run: |
+        if [ -d "backend" ] && [ -f "backend/package.json" ]; then
+          cd backend && npm run test
+        fi
+        
+    - name: Run backend integration tests
+      if: always()
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/mnada_test_db
+        REDIS_URL: redis://localhost:6379
+        NODE_ENV: test
+        JWT_SECRET: test-jwt-secret-key-for-ci-testing
+      run: |
+        if [ -d "backend" ] && [ -f "backend/package.json" ]; then
+          cd backend && npm run test:integration
+        fi
+        
+    - name: Generate test coverage
+      if: always()
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/mnada_test_db
+        REDIS_URL: redis://localhost:6379
+        NODE_ENV: test
+        JWT_SECRET: test-jwt-secret-key-for-ci-testing
+      run: |
+        if [ -d "backend" ] && [ -f "backend/package.json" ]; then
+          cd backend && npm run test:coverage
+        fi
+        
+    - name: Upload coverage to Codecov
+      if: always()
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage/lcov.info
+        flags: backend
+        name: backend-coverage
+
+  # ===================================
+  # FRONTEND TESTS
+  # ===================================
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run frontend unit tests
+      if: always()
+      env:
+        NODE_ENV: test
+        NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      run: |
+        if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
+          cd frontend && npm run test
+        fi
+        
+    - name: Generate test coverage
+      if: always()
+      env:
+        NODE_ENV: test
+        NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      run: |
+        if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
+          cd frontend && npm run test:coverage
+        fi
+        
+    - name: Upload coverage to Codecov
+      if: always()
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./frontend/coverage/lcov.info
+        flags: frontend
+        name: frontend-coverage
+
+  # ===================================
+  # BUILD TESTS
+  # ===================================
+  build:
+    name: Build Applications
+    runs-on: ubuntu-latest
+    needs: [lint, backend-tests, frontend-tests]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build backend
+      if: always()
+      env:
+        NODE_ENV: production
+      run: |
+        if [ -d "backend" ] && [ -f "backend/package.json" ]; then
+          cd backend && npm run build
+        fi
+        
+    - name: Build frontend
+      if: always()
+      env:
+        NODE_ENV: production
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      run: |
+        if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
+          cd frontend && npm run build
+        fi
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts
+        path: |
+          frontend/.next/
+          backend/dist/
+        retention-days: 7
+
+  # ===================================
+  # E2E TESTS
+  # ===================================
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_USER: test_user
+          POSTGRES_DB: mnada_e2e_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Setup E2E database
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/mnada_e2e_db
+      run: |
+        psql $DATABASE_URL -f db/mnada_schema_supabase.sql
+        psql $DATABASE_URL -f db/seed_mnada.sql
+        
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: build-artifacts
+        
+    - name: Start application for E2E tests
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/mnada_e2e_db
+        NODE_ENV: test
+        PORT: 4000
+        NEXT_PUBLIC_API_URL: http://localhost:4000
+      run: |
+        # Start backend
+        if [ -d "backend" ]; then
+          cd backend && npm run start:prod &
+          cd ..
+        fi
+        
+        # Start frontend
+        if [ -d "frontend" ]; then
+          cd frontend && npm run start &
+          cd ..
+        fi
+        
+        # Wait for services to be ready
+        sleep 30
+        
+    - name: Install Playwright browsers
+      if: always()
+      run: |
+        if [ -d "tests" ] && [ -f "tests/package.json" ]; then
+          cd tests && npx playwright install
+        fi
+        
+    - name: Run E2E tests
+      if: always()
+      env:
+        BASE_URL: http://localhost:3000
+        API_URL: http://localhost:4000
+      run: |
+        if [ -d "tests" ] && [ -f "tests/package.json" ]; then
+          cd tests && npm run test:e2e
+        fi
+        
+    - name: Upload E2E test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: e2e-test-results
+        path: tests/test-results/
+        retention-days: 7
+
+  # ===================================
+  # SECURITY SCAN
+  # ===================================
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run npm audit
+      continue-on-error: true
+      run: |
+        npm audit --audit-level high
+        
+    - name: Run Snyk security scan
+      uses: snyk/actions/node@master
+      continue-on-error: true
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high
+
+  # ===================================
+  # DEPLOYMENT (Production)
+  # ===================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, e2e-tests, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: build-artifacts
+        
+    - name: Deploy to Vercel (Frontend)
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+        working-directory: ./frontend
+        vercel-args: '--prod'
+        
+    - name: Deploy Backend (if using separate hosting)
+      if: false  # Enable if using separate backend hosting
+      run: |
+        echo "Deploy backend to your preferred hosting platform"
+        # Add your backend deployment commands here
+        
+    - name: Run database migrations (Production)
+      env:
+        DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      run: |
+        # Only run migrations, not seeds in production
+        psql $DATABASE_URL -f db/mnada_schema_supabase.sql
+        
+    - name: Notify deployment success
+      if: success()
+      run: |
+        echo "✅ MNADA deployed successfully to production!"
+        
+    - name: Notify deployment failure
+      if: failure()
+      run: |
+        echo "❌ MNADA deployment failed!"
+
+  # ===================================
+  # DEPLOYMENT (Staging)
+  # ===================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build, e2e-tests]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: build-artifacts
+        
+    - name: Deploy to Vercel (Staging)
+      uses: amondnet/vercel-action@v25
+      with:
+        vercel-token: ${{ secrets.VERCEL_TOKEN }}
+        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+        working-directory: ./frontend
+        # No --prod flag for staging
+        
+    - name: Run database migrations (Staging)
+      env:
+        DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      run: |
+        psql $DATABASE_URL -f db/mnada_schema_supabase.sql
+        psql $DATABASE_URL -f db/seed_mnada.sql
+        
+    - name: Notify staging deployment
+      if: success()
+      run: |
+        echo "🚀 MNADA deployed to staging environment!"

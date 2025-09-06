@@ -1,0 +1,142 @@
+# MNADA Development Environment
+# Docker Compose for local development services
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: mnada-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mnada_db
+      POSTGRES_USER: mnada_user
+      POSTGRES_PASSWORD: mnada_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db:/docker-entrypoint-initdb.d
+    networks:
+      - mnada-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mnada_user -d mnada_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Meilisearch for search functionality
+  meilisearch:
+    image: getmeili/meilisearch:v1.4
+    container_name: mnada-meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: mnada_search_master_key_2025
+      MEILI_ENV: development
+      MEILI_LOG_LEVEL: INFO
+    ports:
+      - "7700:7700"
+    volumes:
+      - meilisearch_data:/meili_data
+    networks:
+      - mnada-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    container_name: mnada-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mnada-network
+    command: redis-server --appendonly yes --requirepass mnada_redis_password
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Supabase Local Development (optional - use when not using cloud Supabase)
+  supabase:
+    image: supabase/supabase:latest
+    container_name: mnada-supabase
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: mnada_password
+      JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
+      ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+      SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+    ports:
+      - "54321:8000"  # Supabase API
+      - "54322:8001"  # Supabase Auth
+      - "54323:8002"  # Supabase Rest
+      - "54324:8003"  # Supabase Realtime
+      - "54325:8004"  # Supabase Storage
+    networks:
+      - mnada-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - supabase-local  # Use docker-compose --profile supabase-local up to start this
+
+  # Mock Payment Server for M-Pesa simulation
+  mock-mpesa:
+    build:
+      context: .
+      dockerfile: infra/mock-mpesa.Dockerfile
+    container_name: mnada-mock-mpesa
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+    ports:
+      - "8080:8080"
+    networks:
+      - mnada-network
+    profiles:
+      - mock-services
+
+  # NGINX for local reverse proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: mnada-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - mnada-network
+    depends_on:
+      - postgres
+      - meilisearch
+      - redis
+    profiles:
+      - nginx
+
+volumes:
+  postgres_data:
+    driver: local
+  meilisearch_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  mnada-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
